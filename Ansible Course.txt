@@ -1,0 +1,279 @@
+Ansible - Provisioning, configuration management, continuous delivery, application deployment, security compliance. 
+Simple, Automate, Agentless.
+Time, Coding Skills, Maintenance
+
+Concepts: Plays, Playbooks, Variables, Conditional Statements, Register, Roles (Ansible Galaxy), Async, Strategy, Forks, Vault, Error Handling, Jinja2, Lookups, Modules, Plugins, Callback
+Version: 5
+
+Inventory:
+Host, Groups
+ansible_connection - ssh/winrm/localhost
+ansible_port - 22/5986
+ansible_user - root/administrator
+ansible_ssh_pass - linux password ansible_password - windows password
+Security: Ansible Vault
+[{group_name}]
+[{group_name}:children]
+
+Example:
+if we have ssh configured already:
+ansible target1 -m ping -i inventory.txt
+if ssh not configured:
+/etc/ansible/ansible.cfg
+host_key_checking=False
+
+Data Representation Types: XML, Json, YAML
+List and Dictionary
+
+Ansible Playbooks:
+Set of Instructution - Simple to Complex sequence of codes
+Yaml Format, Play, list of play, dictionary within play - (name, hosts, tasks), list of actions within tasks
+ansible-playbook {playbook_name.yml}
+
+Modules:
+different actions run in the tasks
+command, script, yum, service
+ansible-doc-1
+
+Runing Methods: 
+ansible - imperative 
+ansible {group_name/host_name} -m {module_name} -i {inventory_file}
+ansible all -m ping -i inventory.txt 
+
+ansible-playbook - declarative
+-
+  name: Test connectivity to target servers
+  hosts: all
+  tasks:
+    - name: ping test
+      ping:
+ansible-playbook {playbook_name.yaml} -i {inventory_file}
+Change already present ? the status is OK. 
+Change made ? status: changed
+
+Typing Easier Yaml File: Atom, linter-js-yaml, remote-sync
+Sync file between control and local machine
+
+Modules:
+System - User, Group, hostname, iptables, lvg, lvol, make, mount, ping, timezone, systemd, service
+commands - command, expect, rar, script, shell
+files - acl, archieve, copy, file, find, lineinfile, replace, stat, template, unarchieve
+database - operation on several type of databases. mondodb, mssql, mysql, postgresl,  
+cloud - options for various cloud service operations
+windows - helps use ansible on windows machine, standard windows command
+More
+
+Modules Example:
+CMD: Run a command on machine
+Script: transfers a script from local machine and runs with parameters
+Service: Start, stop, restart some service name=postgresql state=started|stop|restart
+lineinfile: search for a line in a file and replace it or add it if it doesnt exist
+user:
+mysql
+pip  
+
+idempotent = declarative approach
+The above operations are idempotent - an operation is idempotent if the result of performing it once is exactly the same as the result of performing it repeatedly without any intervening actions. For example - started in the above service command makes sure, the service comes to start state, like declarative approach 
+
+Variables: Jinja2 templating
+like any other scripting, variables are used to handle varying information. 
+1. Defining in the playbook 
+vars:
+   {variable_name}: {variable_data}
+2. Defining in inventory:
+Variables can be kept in inventory file and can be referred in playbook with double curly {{}}
+3. Separate file for variable: yaml file
+if jinga2 is used in the begining of sentence, use a single quote 
+
+
+Conditionals:
+when condition - can be used to direct commands based on a factor. 
+Example yum install in centos, apt install in nginx
+when: ansible_os_family == "Debian or ansible_os_family == "SUSE" AND ansible_os_family == "SUSE2"  
+
+Conditional in Loops:
+- name: Install Softwares
+  hosts: all
+  vars:
+     packages:
+	- name: nginx
+	  required: True
+	- name: mysql
+	  required: False
+  tasks:
+  - name: Install "{{item.name}}" on debian 
+    apt:
+	name: "{{item.name}}"
+	state: present
+    when: 	item.required == True
+    loop: "{{packages}}"
+
+Conditionals and Register:
+Store the result of a task in register and pass to next task
+- name: check status of a service and email if its down
+  hosts: localhost
+  tasks:
+	- command: service httpd status
+	  register: result
+	- mail:
+	    to: admin@company.com
+	    subject:  Service Alert
+	    body: Httpd Service is down
+	    when: result.stdout.find('down') != -1
+
+
+Loops:
+Loops are used to perform repetitive tasks for n number of times. There are several types of lookup elements on which we can run loops on.
+
+Example:
+tasks:
+  - user: name='{{ item }}' state= present
+    loop:
+	- joe
+	- ram
+	- john
+
+  - user: name='{{ item.name }}' state= present uid = '{{item.uid}}'
+    loop:
+	- name: joe
+	  uid: 101
+	- name: ram
+	  uid: 302	
+	- john
+	  uid: 521
+
+Other keywords replacing 'loop' are with_item, with_file, with_url, with_mongodb, with_env..
+
+Roles:
+Roles is a way of packaging variables and inventory, tasks - play together. The plays and hosts are segmented inside a role. It can be ported and reused
+
+vars - variables used
+defaults - default values
+handlers
+templates - any template used
+
+ansible galaxy has 1000 of roles for almost any task. Installing and configuring different webserver, databases. We can take a look at the role first before building something. When we isntall a role from ansible, by default it gets installed in the roles directory, we can change the directory to current directory as well(to change by default, we change in ansible config file). 
+
+---This command creates a role folder 
+Anxible-galaxy init mysql
+--- install role in a particular directory
+ansible-galaxy install {role_name_ansible_galaxy} -p ./roles
+-- roles can be called in the notebook file
+hosts: {host_name}
+	roles: 
+		- {roll_name_1}
+		- {roll_name_2}
+
+Monolithic - Web Application Development:
+Identify Server, Install Python, Install Database, Install Flask, download source code, run the code
+
+We pick a sample web application made using flask and mysql server.
+mysql setup - apt get install mysql, setup user, permisions to user, create tables, put data in
+flask application: conenct python application to database, create functions, get, post, show all etc.,
+
+We can use ansible playbook to automate above process:
+1. ceate host file, can be one or many
+2. tasks:
+	- install all required dependencies
+	- 
+
+Asynchronous:
+WE start a process and go to the next one without waiting for current task is complete. We can store the current task as a register variable and come after sequence of tasks to check the register status
+
+async - how long to run?
+poll - how frequently to check ?
+async_status - check status of an async task
+
+tasks:
+	- command: /opt/monitor_webapp.py
+	  asyn: 360
+	  poll: 0
+	  register: webapp_result
+	- command: /opt/monitor_database.py
+	  async: 360
+	  poll: 0
+	  register: database_result
+	- name: check status of tasks
+	  async_status: jid={{webapp_result.ansible_job_id}}
+	  register: job_result
+	  until: job_result.finished
+	  retries: 30
+
+Strategy:
+
+- Code Execution on multiple hosts
+- Types: linear (serial - specify how many to run simultaneously), free 
+
+Forks:
+- Number of host to simultaneouly talk to 
+- default - 5. Can be changed in ansible.cfg
+
+Jinja2 Templating:{{}}
+String Manipulation 
+{{my_name | upper }} , lower, title, replace, default, join
+Number operations:
+{{[1,2,3] | min}}, max, unique, union, intersect, random
+File Filters:
+{{"/etc/hosts" | basename}}, win_basename, win_splitdrive, first, last, 
+
+Looksups:
+we can lookup on CSV, INI, Mongodb
+Example
+{{lookup('csvfile','target1' file=/tmp/credentials.csv delimiter=,')}}
+
+Vault:
+ansible-vault encrypt {inventory.txt}
+ansible-playbook {filename.yml} -i inventory.txt -ask-vault-pass
+ansible-playbook {filename.yml} -i inventory.txt -vault-password-file ~./vault_pass.txt
+ansible-playbook {filename.yml} -i inventory.txt -vault-password-file ~./vault_pass.py
+ansible-vault view inventory.txt
+ansible-vault create inventory.txt
+
+
+
+Error Handling:
+Two ways to handle errors, either stop the entire playbook or ignore errors
+- any_error_fatal: true
+- ignore_errors: yes
+- command: cat /var/log/server/log
+  register: command output
+  failed_when: "'ERROR' in comman_output.stdout"
+
+
+Decoupling:
+- create manual process on the host machine
+- list the process involved in accomplishing the goal
+- create tasks for each process and fill in the script to accomplish it
+- identify modules, loops, variables, hosts
+- create variable files
+- decouple stages:
+	- create include yaml files
+	- create roles using ansible-galaxy and move include yaml file
+	- call roles in primary playbookb
+	- add readme, repo information 
+
+Dynamic Inventory:
+We can use a python script instead of the inventory ini file and pass it along to the playbook. There are scripts available in python to collected host related information for aws, gcp, docker etc.,
+ansible-playbook playbook.yml -i inventory.py 
+
+Custom Modules:
+modules are items in tasks that perform a certain task. We can build one using python, provide documentation to module, provide example to module.
+We can keep modules in python2.7/dist-packages/ansible/modules or ROLE or across project ans specify env variable
+Assistant: ansible-playable
+
+Plugins:
+Action - invoke modules
+Connnection - establish connection
+filter - to manipulate data
+lookup - extract data from external sources
+Strategy - control flow and execution of play
+callback - handles events and results of execution
+
+Plugin Creation - plugins can be created using python script. A simple average plugin can be created. The directory where the custom plugins are stored is passed to the notebook execution. 
+export ANSIBLE_FILTER_PLUGINS=/filter_plugins; ansible-playbook playbook.yml
+
+CALLBACK PLUGIN:
+The results that we see on the screen upon execution of the playbook is printed by the callback plugin which handles events and results of execution. We can change the result print out to json as well.
+export ANSIBLE_STDOUT_CALLBACK=json; ansible-playbook playbook1.yml
+This result can be sent to Mail, hipchat, jabber, logstash, slack, Timer. There are several callback plugin examples available. 
+
